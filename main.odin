@@ -2,6 +2,8 @@ package game
 import rl "vendor:raylib"
 
 import "core:fmt"
+import "core:strings"
+import "core:strconv"
 import "core:math/rand"
 
 
@@ -17,6 +19,7 @@ Player :: struct{
 Game :: struct{
     player : Player,
     ghosts : []Ghost,
+    score :  i32,
     level  : [30][30]int,
 }
 
@@ -79,15 +82,15 @@ main :: proc() {
     g:= Game{}
 
     //initLevel(game)
-        g.level[0] = [30]int{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
-        g.level[1]= [30]int{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}
-        g.level[2]= [30]int{1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1}
-        g.level[3]= [30]int{1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1}
-        g.level[4]= [30]int{1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1}
-        g.level[5]= [30]int{1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1}
-        g.level[6]= [30]int{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}
-        g.level[7]= [30]int{1, 0, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 1}
-        g.level[8]= [30]int{1, 0, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 1}
+        g.level[0]=  [30]int{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
+        g.level[1]=  [30]int{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}
+        g.level[2]=  [30]int{1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1}
+        g.level[3]=  [30]int{1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1}
+        g.level[4]=  [30]int{1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1}
+        g.level[5]=  [30]int{1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1}
+        g.level[6]=  [30]int{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}
+        g.level[7]=  [30]int{1, 0, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 1}
+        g.level[8]=  [30]int{1, 0, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 1}
         g.level[9]=  [30]int{1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1}
         g.level[10]= [30]int{1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1}
         g.level[11]= [30]int{1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1}
@@ -101,7 +104,7 @@ main :: proc() {
         g.level[19]= [30]int{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}
         g.level[20]= [30]int{1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1}
         g.level[21]= [30]int{1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1}
-        g.level[22]= [30]int{1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1}
+        g.level[22]= [30]int{1, 2, 0, 0, 1, 1, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1}
         g.level[23]= [30]int{1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1}
         g.level[24]= [30]int{1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1}
         g.level[25]= [30]int{1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1}
@@ -121,21 +124,66 @@ main :: proc() {
 
 
     */
+    rl.SetTargetFPS(30)
 	for !rl.WindowShouldClose() {
+
+       // player movement
+       px := g.player.position[0]
+       py := g.player.position[1]
+       if rl.IsKeyDown(rl.KeyboardKey.A) {
+           px -= 1
+		}
+		if rl.IsKeyDown(rl.KeyboardKey.D) {
+            px += 1
+		}
+		if rl.IsKeyDown(rl.KeyboardKey.W) {
+            py -= 1
+		}
+		if rl.IsKeyDown(rl.KeyboardKey.S) {
+            py += 1
+		}
+        if g.level[px][py] != 1 {
+            g.player.position[0] = px
+            g.player.position[1] = py
+
+            if g.level[px][py] == 2{
+                g.score += 1
+                g.level[px][py] = 0
+            }
+        }
+
+
+
+
         rl.BeginDrawing()
 
+        // draw board
         for i : i32 = 0 ;i <  len(g.level); i += 1 {
          for k : i32 = 0 ;k <  len(g.level[i]); k += 1 {
              if g.level[i][k] == 1 {
                  rl.DrawRectangle(i*FACTOR,k*FACTOR,FACTOR,FACTOR,rl.RED)
              }else{
-                 rl.DrawRectangle(i*FACTOR,k*FACTOR,FACTOR,FACTOR,rl.BLUE)
+                 if g.level[i][k] == 2 {
+                     rl.DrawRectangle(i*FACTOR,k*FACTOR,FACTOR,FACTOR,rl.BLUE)
+                     rl.DrawCircle((i*FACTOR)+FACTOR/2,(k*FACTOR)+FACTOR/2,5.0,rl.GREEN)
+                 }else{
+                     rl.DrawRectangle(i*FACTOR,k*FACTOR,FACTOR,FACTOR,rl.BLUE)
+                 }
              }
             }
         }
 
 
+        // draw player
         rl.DrawRectangle(g.player.position[0]*FACTOR,g.player.position[1]*FACTOR,FACTOR,FACTOR,rl.YELLOW)
+
+        // draw score
+        buf : [8]u8
+        result := strconv.itoa(buf[:],int(g.score))
+        score_text : []string = {"SCORE : ",  result}
+        score_text_final := strings.clone_to_cstring(strings.concatenate(score_text[:]))
+        rl.DrawText(score_text_final,12*FACTOR,3*FACTOR,FACTOR,rl.GREEN)
+
 
 
 		rl.EndDrawing()
