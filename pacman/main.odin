@@ -8,6 +8,7 @@ import "core:strings"
 
 
 ODIN_DEBUG := true
+FPS : i32 = 30
 
 
 Ghost :: struct {
@@ -32,6 +33,13 @@ Game :: struct {
 	ghosts: []Ghost,
 	score:  i32,
 	level:  [30][30]int,
+    state : GameState
+}
+
+GameState :: enum{
+    RUNNING,
+    WON,
+    LOST
 }
 
 drawGame :: proc(game: Game) {
@@ -82,6 +90,8 @@ main :: proc() {
 	rl.InitWindow(30 * FACTOR, 30 * FACTOR, "pacman")
 
 	g := Game{}
+
+    g.state = GameState.RUNNING
 
     //initLevel(game)
     g.level[0]=  [30]int{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
@@ -141,12 +151,16 @@ main :: proc() {
 	g.ghosts[2].path = DFS(g.level,g.ghosts[2].position,{27,1})
 	g.ghosts[3].path = DFS(g.level,g.ghosts[3].position,{28,27})
 
-	rl.SetTargetFPS(30)
+	rl.SetTargetFPS(FPS)
 
     g.score = 0
-    fmt.println(g.score)
+
+    frames : i32 = 0
 
 	for !rl.WindowShouldClose() {
+
+        frames += 1 
+
         // are we still gaming?
         available_score := 0
 
@@ -176,16 +190,20 @@ main :: proc() {
 			}
 		}
 
-
 		// GHOST MOVEMENT
-        for &ghost in g.ghosts{
-            if len(ghost.path) > 0 && ghost.direction_ind < len(ghost.path){
-                ghost.position = ghost.path[ghost.direction_ind]
-                ghost.direction_ind = (ghost.direction_ind + 1)// % len(ghost.path)
-            }
-            if ghost.direction_ind >= len(ghost.path){
-                ghost.path = DFS(g.level,ghost.position,g.player.position)
-                ghost.direction_ind = 0
+        if frames % (FPS/8) ==  0 {
+            for &ghost in g.ghosts{
+                if len(ghost.path) > 0 && ghost.direction_ind < len(ghost.path){
+                    ghost.position = ghost.path[ghost.direction_ind]
+                    ghost.direction_ind = (ghost.direction_ind + 1)// % len(ghost.path)
+                }
+                if ghost.direction_ind >= len(ghost.path){
+                    ghost.path = DFS(g.level,ghost.position,g.player.position)
+                    ghost.direction_ind = 0
+                }
+                if ghost.position == g.player.position {
+                    g.state = GameState.LOST
+                }
             }
         }
 
@@ -214,7 +232,6 @@ main :: proc() {
 			}
 		}
 
-        fmt.println("test:",available_score)
 
 
 		// draw GHOSTS
@@ -226,13 +243,6 @@ main :: proc() {
 				FACTOR,
 				FACTOR,
 				rl.GREEN,
-			)
-			rl.DrawLine(
-				ghost.position[0] * FACTOR + (FACTOR / 2),
-				ghost.position[1] * FACTOR + (FACTOR / 2),
-				ghost.position[0] * FACTOR + (FACTOR / 2) + ghost.direction[0] * FACTOR,
-				ghost.position[1] * FACTOR + (FACTOR / 2) + ghost.direction[1] * FACTOR,
-				rl.RED,
 			)
 		}
 
@@ -254,7 +264,15 @@ main :: proc() {
 		rl.DrawText(score_text_final, 12 * FACTOR, 3 * FACTOR, FACTOR, rl.GREEN)
 
 		rl.EndDrawing()
+
+        if available_score == 0
+        {
+            g.state = GameState.WON
+        }
+
+        fmt.println(g.state)
 	}
+
 	rl.CloseWindow()
 
 }
