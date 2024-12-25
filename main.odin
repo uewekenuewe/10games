@@ -2,189 +2,246 @@ package game
 import rl "vendor:raylib"
 
 import "core:fmt"
-import "core:strings"
-import "core:strconv"
 import "core:math/rand"
+import "core:strconv"
+import "core:strings"
 
 
-Ghost :: struct{
-    position : [2]i32,
-    direction : [2]i32
-}
-Player :: struct{
-    position : [2]i32,
-    direction : [2]i32
-}
+ODIN_DEBUG := true
 
-Game :: struct{
-    player : Player,
-    ghosts : []Ghost,
-    score :  i32,
-    level  : [30][30]int,
+
+Ghost :: struct {
+	position:      [2]i32,
+	direction:     [2]i32,
+	direction_ind: int,
+	path:          [dynamic][2]i32,
 }
 
-/*
-   
-cell contents	code
-empty	0
-small pellet	1
-large pellet	2
-cherry	3
-wall	4
-ghost area	5
-
-*/
-
-initLevel :: proc(g : Game) {
-    //TODO vielleicht anderes
-    g := g
-    g.level[0] = [30]int{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
-        g.level[1]= [30]int{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}
-        g.level[2]= [30]int{1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1}
-        g.level[3]= [30]int{1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1}
-        g.level[4]= [30]int{1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1}
-        g.level[5]= [30]int{1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1}
-        g.level[6]= [30]int{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}
-        g.level[7]= [30]int{1, 0, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 1}
-        g.level[8]= [30]int{1, 0, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 1}
-        g.level[9]=  [30]int{1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1}
-        g.level[10]= [30]int{1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1}
-        g.level[11]= [30]int{1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1}
-        g.level[12]= [30]int{1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1}
-        g.level[13]= [30]int{1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1}
-        g.level[14]= [30]int{1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1}
-        g.level[15]= [30]int{1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1}
-        g.level[16]= [30]int{1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1}
-        g.level[17]= [30]int{1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1}
-        g.level[18]= [30]int{1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1}
-        g.level[19]= [30]int{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}
-        g.level[20]= [30]int{1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1}
-        g.level[21]= [30]int{1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1}
-        g.level[22]= [30]int{1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1}
-        g.level[23]= [30]int{1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1}
-        g.level[24]= [30]int{1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1}
-        g.level[25]= [30]int{1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1}
-        g.level[26]= [30]int{1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1}
-        g.level[27]= [30]int{1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1}
-        g.level[28]= [30]int{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}
-        g.level[29]= [30]int{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
+DFS_PATH :: struct {
+	position: [2]i32,
+	path:     [dynamic][2]i32,
 }
 
-drawGame :: proc (game : Game){
+Player :: struct {
+	position:  [2]i32,
+	direction: [2]i32,
 }
 
-FACTOR : i32 = 30
+Game :: struct {
+	player: Player,
+	ghosts: []Ghost,
+	score:  i32,
+	level:  [30][30]int,
+}
 
+drawGame :: proc(game: Game) {
+}
+
+
+DFS :: proc(grid: [30][30]int, start: [2]i32, end: [2]i32) -> [dynamic][2]i32 {
+	result: [dynamic][2]i32 = make([dynamic][2]i32)
+
+	dd := [4][2]i32{{1, 0}, {0, -1}, {-1, 0}, {0, 1}}
+
+	queue := make([dynamic]DFS_PATH)
+	visited: map[[2]i32]int
+	append(&queue, DFS_PATH{position = start})
+
+	for len(queue) > 0 {
+		temp: DFS_PATH = pop_front(&queue)
+		if temp.position == end {
+			result = temp.path
+		} else {
+			if visited[temp.position] == 0 {
+				visited[temp.position] += 1
+				for i := 0; i < len(dd); i += 1 {
+					dx := dd[i][0] + temp.position[0]
+					dy := dd[i][1] + temp.position[1]
+					if grid[dx][dy] != 1 {
+						temppath := make([dynamic][2]i32)
+						append(&temppath, ..temp.path[:])
+						append(&temppath, [2]i32{dx, dy})
+						tempele := DFS_PATH {
+							position = [2]i32{dx, dy},
+							path     = temppath,
+						}
+						append(&queue, tempele)
+					}
+				}
+			}
+		}
+	}
+
+
+	return result
+}
+
+FACTOR: i32 = 30
 
 main :: proc() {
-	rl.InitWindow(30*FACTOR, 30*FACTOR, "pacman")
-    
-    g:= Game{}
+	rl.InitWindow(30 * FACTOR, 30 * FACTOR, "pacman")
+
+	g := Game{}
 
     //initLevel(game)
-        g.level[0]=  [30]int{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
-        g.level[1]=  [30]int{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}
-        g.level[2]=  [30]int{1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1}
-        g.level[3]=  [30]int{1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1}
-        g.level[4]=  [30]int{1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1}
-        g.level[5]=  [30]int{1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1}
-        g.level[6]=  [30]int{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}
-        g.level[7]=  [30]int{1, 0, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 1}
-        g.level[8]=  [30]int{1, 0, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 1}
-        g.level[9]=  [30]int{1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1}
-        g.level[10]= [30]int{1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1}
-        g.level[11]= [30]int{1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1}
-        g.level[12]= [30]int{1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1}
-        g.level[13]= [30]int{1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1}
-        g.level[14]= [30]int{1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1}
-        g.level[15]= [30]int{1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1}
-        g.level[16]= [30]int{1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1}
-        g.level[17]= [30]int{1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1}
-        g.level[18]= [30]int{1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1}
-        g.level[19]= [30]int{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}
-        g.level[20]= [30]int{1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1}
-        g.level[21]= [30]int{1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1}
-        g.level[22]= [30]int{1, 2, 0, 0, 1, 1, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1}
-        g.level[23]= [30]int{1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1}
-        g.level[24]= [30]int{1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1}
-        g.level[25]= [30]int{1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1}
-        g.level[26]= [30]int{1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1}
-        g.level[27]= [30]int{1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1}
-        g.level[28]= [30]int{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}
-        g.level[29]= [30]int{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
-
-        g.player = Player{}
-        g.player.position = [2]i32 { 13,23 }
-    /*
-    for i := 0  i <  len(game.level); i += 1 {
-     for k := 0  k <  len(game.level[i]); k += 1 {
-            fmt.print(game.level[i][k])
-        }
-    }
+    g.level[0]=  [30]int{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
+    g.level[1]=  [30]int{1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1}
+    g.level[2]=  [30]int{1, 2, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 2, 1, 1, 2, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 2, 1}
+    g.level[3]=  [30]int{1, 4, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 2, 1, 1, 2, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 4, 1}
+    g.level[4]=  [30]int{1, 2, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 2, 1, 1, 2, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 2, 1}
+    g.level[5]=  [30]int{1, 2, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 2, 1, 1, 2, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 2, 1}
+    g.level[6]=  [30]int{1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1}
+    g.level[7]=  [30]int{1, 2, 1, 1, 1, 1, 2, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 2, 1, 1, 1, 1, 2, 1}
+    g.level[8]=  [30]int{1, 2, 1, 1, 1, 1, 2, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 2, 1, 1, 1, 1, 2, 1}
+    g.level[9]=  [30]int{1, 2, 2, 2, 2, 2, 2, 1, 1, 2, 2, 2, 2, 2, 1, 1, 2, 2, 2, 2, 2, 1, 1, 2, 2, 2, 2, 2, 2, 1}
+    g.level[10]= [30]int{1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 2, 1, 1, 2, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1}
+    g.level[11]= [30]int{1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 2, 1, 1, 2, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1}
+    g.level[12]= [30]int{1, 1, 1, 1, 1, 1, 2, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 2, 1, 1, 1, 1, 1, 1}
+    g.level[13]= [30]int{1, 1, 1, 1, 1, 1, 2, 1, 1, 2, 1, 1, 1, 1, 2, 2, 1, 1, 1, 1, 2, 1, 1, 2, 1, 1, 1, 1, 1, 1}
+    g.level[14]= [30]int{1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1}
+    g.level[15]= [30]int{1, 1, 1, 1, 1, 1, 2, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 2, 1, 1, 1, 1, 1, 1}
+    g.level[16]= [30]int{1, 1, 1, 1, 1, 1, 2, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 2, 1, 1, 1, 1, 1, 1}
+    g.level[17]= [30]int{1, 1, 1, 1, 1, 1, 2, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 2, 1, 1, 1, 1, 1, 1}
+    g.level[18]= [30]int{1, 1, 1, 1, 1, 1, 2, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 2, 1, 1, 1, 1, 1, 1}
+    g.level[19]= [30]int{1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1}
+    g.level[20]= [30]int{1, 2, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 2, 1, 1, 2, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 2, 1}
+    g.level[21]= [30]int{1, 2, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 2, 1, 1, 2, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 2, 1}
+    g.level[22]= [30]int{1, 4, 2, 2, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 2, 2, 4, 1}
+    g.level[23]= [30]int{1, 1, 1, 2, 1, 1, 2, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 2, 1, 1, 2, 1, 1, 1}
+    g.level[24]= [30]int{1, 1, 1, 2, 1, 1, 2, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 2, 1, 1, 2, 1, 1, 1}
+    g.level[25]= [30]int{1, 2, 2, 2, 2, 2, 2, 1, 1, 2, 2, 2, 2, 2, 1, 1, 2, 2, 2, 2, 2, 1, 1, 2, 2, 2, 2, 2, 2, 1}
+    g.level[26]= [30]int{1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1}
+    g.level[27]= [30]int{1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1}
+    g.level[28]= [30]int{1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1}
+    g.level[29]= [30]int{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
 
 
-    */
-    rl.SetTargetFPS(30)
+	g.player = Player{}
+	g.player.position = [2]i32{13, 23}
+
+	g.ghosts = {
+		Ghost{direction_ind = 0, direction = {-1, 0}, position = {14, 16}},
+		Ghost{direction_ind = 0, direction = {-1, 0}, position = {14, 15}},
+		Ghost{direction_ind = 0, direction = {-1, 0}, position = {14, 14}},
+		Ghost{direction_ind = 0, direction = {-1, 0}, position = {14, 13}},
+	}
+
+	path_to_player: []int
+
+	dd := [4][2]i32{{1, 0}, {0, -1}, {-1, 0}, {0, 1}}
+
+    // idea : ghosts run to the corners of the mapp then path to player is generated
+	g.ghosts[0].path = DFS(g.level,g.ghosts[0].position,{1,1})
+	g.ghosts[1].path = DFS(g.level,g.ghosts[1].position,{1,27})
+	g.ghosts[2].path = DFS(g.level,g.ghosts[2].position,{27,1})
+	g.ghosts[3].path = DFS(g.level,g.ghosts[3].position,{28,27})
+	fmt.println(g.ghosts[0].path)
+	fmt.println(g.ghosts[1].path)
+	fmt.println(g.ghosts[2].path)
+	fmt.println(g.ghosts[3].path)
+
+	rl.SetTargetFPS(30)
+
 	for !rl.WindowShouldClose() {
 
-       // player movement
-       px := g.player.position[0]
-       py := g.player.position[1]
-       if rl.IsKeyDown(rl.KeyboardKey.A) {
-           px -= 1
+		// player movement
+		px := g.player.position[0]
+		py := g.player.position[1]
+		if rl.IsKeyDown(rl.KeyboardKey.A) {
+			px -= 1
 		}
 		if rl.IsKeyDown(rl.KeyboardKey.D) {
-            px += 1
+			px += 1
 		}
 		if rl.IsKeyDown(rl.KeyboardKey.W) {
-            py -= 1
+			py -= 1
 		}
 		if rl.IsKeyDown(rl.KeyboardKey.S) {
-            py += 1
+			py += 1
 		}
-        if g.level[px][py] != 1 {
-            g.player.position[0] = px
-            g.player.position[1] = py
+		if g.level[px][py] != 1 {
+			g.player.position[0] = px
+			g.player.position[1] = py
 
-            if g.level[px][py] == 2{
-                g.score += 1
-                g.level[px][py] = 0
+			if g.level[px][py] == 2 || g.level[px][py] == 4 {
+				g.score += 1
+				g.level[px][py] = 0
+			}
+		}
+
+
+		// GHOST MOVEMENT
+        for &ghost in g.ghosts{
+            if len(ghost.path) > 0 && ghost.direction_ind < len(ghost.path){
+                ghost.position = ghost.path[ghost.direction_ind]
+                ghost.direction_ind = (ghost.direction_ind + 1)// % len(ghost.path)
+            }
+            if ghost.direction_ind >= len(ghost.path){
+                ghost.path = DFS(g.level,ghost.position,g.player.position)
+                ghost.direction_ind = 0
             }
         }
 
+		rl.BeginDrawing()
+
+		// draw board
+		for i: i32 = 0; i < len(g.level); i += 1 {
+			for k: i32 = 0; k < len(g.level[i]); k += 1 {
+				if g.level[i][k] == 1 {
+					rl.DrawRectangle(i * FACTOR, k * FACTOR, FACTOR, FACTOR, rl.DARKBLUE)
+				} else {
+					if g.level[i][k] == 2 || g.level[i][k] == 4 {
+						point_type: f32 = 3.0 if g.level[i][k] == 2 else 7.0
+						rl.DrawRectangle(i * FACTOR, k * FACTOR, FACTOR, FACTOR, rl.BLACK)
+						rl.DrawCircle(
+							(i * FACTOR) + FACTOR / 2,
+							(k * FACTOR) + FACTOR / 2,
+							point_type,
+							rl.WHITE,
+						)
+					} else {
+						rl.DrawRectangle(i * FACTOR, k * FACTOR, FACTOR, FACTOR, rl.BLACK)
+					}
+				}
+			}
+		}
 
 
-
-        rl.BeginDrawing()
-
-        // draw board
-        for i : i32 = 0 ;i <  len(g.level); i += 1 {
-         for k : i32 = 0 ;k <  len(g.level[i]); k += 1 {
-             if g.level[i][k] == 1 {
-                 rl.DrawRectangle(i*FACTOR,k*FACTOR,FACTOR,FACTOR,rl.RED)
-             }else{
-                 if g.level[i][k] == 2 {
-                     rl.DrawRectangle(i*FACTOR,k*FACTOR,FACTOR,FACTOR,rl.BLUE)
-                     rl.DrawCircle((i*FACTOR)+FACTOR/2,(k*FACTOR)+FACTOR/2,5.0,rl.GREEN)
-                 }else{
-                     rl.DrawRectangle(i*FACTOR,k*FACTOR,FACTOR,FACTOR,rl.BLUE)
-                 }
-             }
-            }
-        }
-
-
-        // draw player
-        rl.DrawRectangle(g.player.position[0]*FACTOR,g.player.position[1]*FACTOR,FACTOR,FACTOR,rl.YELLOW)
-
-        // draw score
-        buf : [8]u8
-        result := strconv.itoa(buf[:],int(g.score))
-        score_text : []string = {"SCORE : ",  result}
-        score_text_final := strings.clone_to_cstring(strings.concatenate(score_text[:]))
-        rl.DrawText(score_text_final,12*FACTOR,3*FACTOR,FACTOR,rl.GREEN)
+		// draw GHOSTS
+		for i: int = 0; i < len(g.ghosts); i += 1 {
+			ghost := g.ghosts[i]
+			rl.DrawRectangle(
+				ghost.position[0] * FACTOR,
+				ghost.position[1] * FACTOR,
+				FACTOR,
+				FACTOR,
+				rl.GREEN,
+			)
+			rl.DrawLine(
+				ghost.position[0] * FACTOR + (FACTOR / 2),
+				ghost.position[1] * FACTOR + (FACTOR / 2),
+				ghost.position[0] * FACTOR + (FACTOR / 2) + ghost.direction[0] * FACTOR,
+				ghost.position[1] * FACTOR + (FACTOR / 2) + ghost.direction[1] * FACTOR,
+				rl.RED,
+			)
+		}
 
 
+		// draw player
+		rl.DrawRectangle(
+			g.player.position[0] * FACTOR,
+			g.player.position[1] * FACTOR,
+			FACTOR,
+			FACTOR,
+			rl.YELLOW,
+		)
+
+		// draw score
+		buf: [8]u8
+		result := strconv.itoa(buf[:], int(g.score))
+		score_text: []string = {"SCORE : ", result}
+		score_text_final := strings.clone_to_cstring(strings.concatenate(score_text[:]))
+		rl.DrawText(score_text_final, 12 * FACTOR, 3 * FACTOR, FACTOR, rl.GREEN)
 
 		rl.EndDrawing()
 	}
