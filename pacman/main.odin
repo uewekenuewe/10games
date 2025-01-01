@@ -277,6 +277,7 @@ main :: proc() {
         if g.state == GameState.LOST {
             rl.ClearBackground(rl.BLUE)
 			rl.DrawText("YOU LOST", 12 * FACTOR, 3 * FACTOR, FACTOR, rl.GREEN)
+			rl.DrawText("PRESS R FOR RESTART", 12 * FACTOR, 5 * FACTOR, FACTOR, rl.GREEN)
             if rl.IsKeyDown(rl.KeyboardKey.R) {
                 g = Game{}
                 g = initGame(g)
@@ -288,6 +289,13 @@ main :: proc() {
         if g.state == GameState.WON {
             rl.ClearBackground(rl.BLUE)
 			rl.DrawText("YOU WON", 12 * FACTOR, 3 * FACTOR, FACTOR, rl.GREEN)
+			rl.DrawText("PRESS R FOR RESTART", 12 * FACTOR, 5 * FACTOR, FACTOR, rl.GREEN)
+            if rl.IsKeyDown(rl.KeyboardKey.R) {
+                g = Game{}
+                g = initGame(g)
+                g.state = GameState.RUNNING
+                available_score = 99
+            }
         }
 		rl.EndDrawing()
 
