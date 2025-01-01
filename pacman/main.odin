@@ -26,6 +26,7 @@ DFS_PATH :: struct {
 Player :: struct {
 	position:  [2]i32,
 	direction: [2]i32,
+	power:     i32,
 }
 
 Game :: struct {
@@ -84,13 +85,13 @@ DFS :: proc(grid: [30][30]int, start: [2]i32, end: [2]i32) -> [dynamic][2]i32 {
 }
 
 initGame :: proc(game: Game) -> Game {
-    g := game
+	g := game
 
-    g.score = 0
+	g.score = 0
 
 	g.state = GameState.RUNNING
 
-    g.level = [30][30]int{}
+	g.level = [30][30]int{}
 
     //initLevel(game)
     g.level[0]=  [30]int{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
@@ -124,43 +125,57 @@ initGame :: proc(game: Game) -> Game {
     g.level[28]= [30]int{1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1}
     g.level[29]= [30]int{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
 
+
 	g.player = Player{}
 	g.player.position = [2]i32{13, 23}
+	g.player.power = 0
 
 	// whipe pgrid position where player is because otherwise we start with 1 point
 	g.level[g.player.position[0]][g.player.position[1]] = 0
 
-	g.ghosts = [4]Ghost{
-    		Ghost{direction_ind = 0, direction = {-1, 0}, position = {14, 16}},
+	g.ghosts = [4]Ghost {
+		Ghost{direction_ind = 0, direction = {-1, 0}, position = {14, 16}},
 		Ghost{direction_ind = 0, direction = {-1, 0}, position = {14, 15}},
 		Ghost{direction_ind = 0, direction = {-1, 0}, position = {14, 14}},
 		Ghost{direction_ind = 0, direction = {-1, 0}, position = {14, 13}},
-}
+	}
 
 	path_to_player: []int
 
 	dd := [4][2]i32{{1, 0}, {0, -1}, {-1, 0}, {0, 1}}
 
 	// idea : ghosts run to the corners of the mapp then path to player is generated
-    // creating ghosts and gettings paths for ghosts
+	// creating ghosts and gettings paths for ghosts
 	g.ghosts[0].path = DFS(g.level, g.ghosts[0].position, {1, 1})
 	g.ghosts[1].path = DFS(g.level, g.ghosts[1].position, {1, 27})
 	g.ghosts[2].path = DFS(g.level, g.ghosts[2].position, {27, 1})
 	g.ghosts[3].path = DFS(g.level, g.ghosts[3].position, {28, 27})
+	//copy over paths to init thingy
+	GHOSTSINIT[0].path = g.ghosts[0].path
+	GHOSTSINIT[1].path = g.ghosts[1].path
+	GHOSTSINIT[2].path = g.ghosts[2].path
+	GHOSTSINIT[3].path = g.ghosts[3].path
 
-    return g
+	return g
 }
 
 FACTOR: i32 = 30
+PLAYER_POWER_DURATION_SEC : i32 = 10
+
+GHOSTSINIT: [4]Ghost = [4]Ghost {
+	Ghost{direction_ind = 0, direction = {-1, 0}, position = {14, 16}},
+	Ghost{direction_ind = 0, direction = {-1, 0}, position = {14, 15}},
+	Ghost{direction_ind = 0, direction = {-1, 0}, position = {14, 14}},
+	Ghost{direction_ind = 0, direction = {-1, 0}, position = {14, 13}},
+}
+
 
 main :: proc() {
 	rl.InitWindow(30 * FACTOR, 30 * FACTOR, "pacman")
 
 	g := Game{}
 
-    g = initGame(g)
-
-    fmt.println("amount of ghosts:",len(g.ghosts))
+	g = initGame(g)
 
 	rl.SetTargetFPS(FPS)
 
@@ -193,15 +208,31 @@ main :: proc() {
 			g.player.position[1] = py
 
 			if g.level[px][py] == 2 || g.level[px][py] == 4 {
+				if g.level[px][py] == 4 {
+					g.player.power = PLAYER_POWER_DURATION_SEC
+				}
+
 				g.score += 1
 				available_score -= g.level[px][py]
 				g.level[px][py] = 0
+
 			}
 		}
 
+		// everything that happens every second
+		if frames % (FPS) == 0 {
+			// if player is powered up reduce power -1
+			if g.player.power > 0 {
+				g.player.power -= 1
+			}
+
+		}
+
 		// GHOST MOVEMENT
-		if frames % (FPS / 8) == 0 {
-			for &ghost in g.ghosts {
+		ind := 0
+		for &ghost in g.ghosts {
+			// 1/8 of a second
+			if frames % (FPS / 8) == 0 {
 				if len(ghost.path) > 0 && ghost.direction_ind < len(ghost.path) {
 					ghost.position = ghost.path[ghost.direction_ind]
 					ghost.direction_ind = (ghost.direction_ind + 1) // % len(ghost.path)
@@ -210,10 +241,15 @@ main :: proc() {
 					ghost.path = DFS(g.level, ghost.position, g.player.position)
 					ghost.direction_ind = 0
 				}
-				if ghost.position == g.player.position {
+			}
+			if ghost.position == g.player.position {
+				if g.player.power > 0 {
+					g.ghosts[ind] = GHOSTSINIT[ind]
+				} else {
 					g.state = GameState.LOST
 				}
 			}
+			ind += 1
 		}
 
 		rl.BeginDrawing()
@@ -257,6 +293,7 @@ main :: proc() {
 
 
 			// draw player
+            if g.player.power == 0{
 			rl.DrawRectangle(
 				g.player.position[0] * FACTOR,
 				g.player.position[1] * FACTOR,
@@ -264,6 +301,19 @@ main :: proc() {
 				FACTOR,
 				rl.YELLOW,
 			)
+            }else{
+                		if frames % (FPS/14) == 0 {
+                			rl.DrawRectangle(
+				g.player.position[0] * FACTOR,
+				g.player.position[1] * FACTOR,
+				FACTOR,
+				FACTOR,
+				rl.YELLOW,
+			)
+                        }
+
+            }
+
 
 			// draw score
 			buf: [8]u8
@@ -273,33 +323,32 @@ main :: proc() {
 			rl.DrawText(score_text_final, 12 * FACTOR, 3 * FACTOR, FACTOR, rl.GREEN)
 		}
 
-        fmt.println(g.state)
-        if g.state == GameState.LOST {
-            rl.ClearBackground(rl.BLUE)
+		if g.state == GameState.LOST {
+			rl.ClearBackground(rl.BLUE)
 			rl.DrawText("YOU LOST", 12 * FACTOR, 3 * FACTOR, FACTOR, rl.GREEN)
 			rl.DrawText("PRESS R FOR RESTART", 12 * FACTOR, 5 * FACTOR, FACTOR, rl.GREEN)
-            if rl.IsKeyDown(rl.KeyboardKey.R) {
-                g = Game{}
-                g = initGame(g)
-                g.state = GameState.RUNNING
-                available_score = 99
-            }
-        }
+			if rl.IsKeyDown(rl.KeyboardKey.R) {
+				g = Game{}
+				g = initGame(g)
+				g.state = GameState.RUNNING
+				available_score = 99
+			}
+		}
 
-        if g.state == GameState.WON {
-            rl.ClearBackground(rl.BLUE)
+		if g.state == GameState.WON {
+			rl.ClearBackground(rl.BLUE)
 			rl.DrawText("YOU WON", 12 * FACTOR, 3 * FACTOR, FACTOR, rl.GREEN)
 			rl.DrawText("PRESS R FOR RESTART", 12 * FACTOR, 5 * FACTOR, FACTOR, rl.GREEN)
-            if rl.IsKeyDown(rl.KeyboardKey.R) {
-                g = Game{}
-                g = initGame(g)
-                g.state = GameState.RUNNING
-                available_score = 99
-            }
-        }
+			if rl.IsKeyDown(rl.KeyboardKey.R) {
+				g = Game{}
+				g = initGame(g)
+				g.state = GameState.RUNNING
+				available_score = 99
+			}
+		}
 		rl.EndDrawing()
 
-		if available_score == 0 && g.state == GameState.RUNNING{
+		if available_score == 0 && g.state == GameState.RUNNING {
 			g.state = GameState.WON
 		}
 	}
