@@ -8,7 +8,7 @@ import "core:strings"
 
 
 ODIN_DEBUG := true
-FPS : i32 = 30
+FPS: i32 = 30
 
 
 Ghost :: struct {
@@ -30,16 +30,16 @@ Player :: struct {
 
 Game :: struct {
 	player: Player,
-	ghosts: []Ghost,
+	ghosts: [4]Ghost,
 	score:  i32,
 	level:  [30][30]int,
-    state : GameState
+	state:  GameState,
 }
 
-GameState :: enum{
-    RUNNING,
-    WON,
-    LOST
+GameState :: enum {
+	RUNNING,
+	WON,
+	LOST,
 }
 
 drawGame :: proc(game: Game) {
@@ -80,18 +80,17 @@ DFS :: proc(grid: [30][30]int, start: [2]i32, end: [2]i32) -> [dynamic][2]i32 {
 		}
 	}
 
-
 	return result
 }
 
-FACTOR: i32 = 30
+initGame :: proc(game: Game) -> Game {
+    g := game
 
-main :: proc() {
-	rl.InitWindow(30 * FACTOR, 30 * FACTOR, "pacman")
+    g.score = 0
 
-	g := Game{}
+	g.state = GameState.RUNNING
 
-    g.state = GameState.RUNNING
+    g.level = [30][30]int{}
 
     //initLevel(game)
     g.level[0]=  [30]int{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
@@ -125,44 +124,54 @@ main :: proc() {
     g.level[28]= [30]int{1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1}
     g.level[29]= [30]int{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
 
-
 	g.player = Player{}
 	g.player.position = [2]i32{13, 23}
 
-    // whipe pgrid position where player is because otherwise we start with 1 point
-    g.level[g.player.position[0]][g.player.position[1]] = 0
+	// whipe pgrid position where player is because otherwise we start with 1 point
+	g.level[g.player.position[0]][g.player.position[1]] = 0
 
-    fmt.println(    g.level[g.player.position[0]][g.player.position[1]] )
-
-	g.ghosts = {
-		Ghost{direction_ind = 0, direction = {-1, 0}, position = {14, 16}},
+	g.ghosts = [4]Ghost{
+    		Ghost{direction_ind = 0, direction = {-1, 0}, position = {14, 16}},
 		Ghost{direction_ind = 0, direction = {-1, 0}, position = {14, 15}},
 		Ghost{direction_ind = 0, direction = {-1, 0}, position = {14, 14}},
 		Ghost{direction_ind = 0, direction = {-1, 0}, position = {14, 13}},
-	}
+}
 
 	path_to_player: []int
 
 	dd := [4][2]i32{{1, 0}, {0, -1}, {-1, 0}, {0, 1}}
 
-    // idea : ghosts run to the corners of the mapp then path to player is generated
-	g.ghosts[0].path = DFS(g.level,g.ghosts[0].position,{1,1})
-	g.ghosts[1].path = DFS(g.level,g.ghosts[1].position,{1,27})
-	g.ghosts[2].path = DFS(g.level,g.ghosts[2].position,{27,1})
-	g.ghosts[3].path = DFS(g.level,g.ghosts[3].position,{28,27})
+	// idea : ghosts run to the corners of the mapp then path to player is generated
+    // creating ghosts and gettings paths for ghosts
+	g.ghosts[0].path = DFS(g.level, g.ghosts[0].position, {1, 1})
+	g.ghosts[1].path = DFS(g.level, g.ghosts[1].position, {1, 27})
+	g.ghosts[2].path = DFS(g.level, g.ghosts[2].position, {27, 1})
+	g.ghosts[3].path = DFS(g.level, g.ghosts[3].position, {28, 27})
+
+    return g
+}
+
+FACTOR: i32 = 30
+
+main :: proc() {
+	rl.InitWindow(30 * FACTOR, 30 * FACTOR, "pacman")
+
+	g := Game{}
+
+    g = initGame(g)
+
+    fmt.println("amount of ghosts:",len(g.ghosts))
 
 	rl.SetTargetFPS(FPS)
 
-    g.score = 0
-
-    frames : i32 = 0
+	frames: i32 = 0
 
 	for !rl.WindowShouldClose() {
 
-        frames += 1 
+		frames += 1
 
-        // are we still gaming?
-        available_score := 0
+		// are we still gaming?
+		available_score := 0
 
 		// player movement
 		px := g.player.position[0]
@@ -185,94 +194,109 @@ main :: proc() {
 
 			if g.level[px][py] == 2 || g.level[px][py] == 4 {
 				g.score += 1
-                available_score -= g.level[px][py]
+				available_score -= g.level[px][py]
 				g.level[px][py] = 0
 			}
 		}
 
 		// GHOST MOVEMENT
-        if frames % (FPS/8) ==  0 {
-            for &ghost in g.ghosts{
-                if len(ghost.path) > 0 && ghost.direction_ind < len(ghost.path){
-                    ghost.position = ghost.path[ghost.direction_ind]
-                    ghost.direction_ind = (ghost.direction_ind + 1)// % len(ghost.path)
-                }
-                if ghost.direction_ind >= len(ghost.path){
-                    ghost.path = DFS(g.level,ghost.position,g.player.position)
-                    ghost.direction_ind = 0
-                }
-                if ghost.position == g.player.position {
-                    g.state = GameState.LOST
-                }
-            }
-        }
-
-		rl.BeginDrawing()
-
-		// draw board
-		for i: i32 = 0; i < len(g.level); i += 1 {
-			for k: i32 = 0; k < len(g.level[i]); k += 1 {
-				if g.level[i][k] == 1 {
-					rl.DrawRectangle(i * FACTOR, k * FACTOR, FACTOR, FACTOR, rl.DARKBLUE)
-				} else {
-					if g.level[i][k] == 2 || g.level[i][k] == 4 {
-                        available_score += g.level[i][k]
-						point_type: f32 = 3.0 if g.level[i][k] == 2 else 7.0
-						rl.DrawRectangle(i * FACTOR, k * FACTOR, FACTOR, FACTOR, rl.BLACK)
-						rl.DrawCircle(
-							(i * FACTOR) + FACTOR / 2,
-							(k * FACTOR) + FACTOR / 2,
-							point_type,
-							rl.WHITE,
-						)
-					} else {
-						rl.DrawRectangle(i * FACTOR, k * FACTOR, FACTOR, FACTOR, rl.BLACK)
-					}
+		if frames % (FPS / 8) == 0 {
+			for &ghost in g.ghosts {
+				if len(ghost.path) > 0 && ghost.direction_ind < len(ghost.path) {
+					ghost.position = ghost.path[ghost.direction_ind]
+					ghost.direction_ind = (ghost.direction_ind + 1) // % len(ghost.path)
+				}
+				if ghost.direction_ind >= len(ghost.path) {
+					ghost.path = DFS(g.level, ghost.position, g.player.position)
+					ghost.direction_ind = 0
+				}
+				if ghost.position == g.player.position {
+					g.state = GameState.LOST
 				}
 			}
 		}
 
+		rl.BeginDrawing()
+
+		if g.state == GameState.RUNNING {
+			// draw board
+			for i: i32 = 0; i < len(g.level); i += 1 {
+				for k: i32 = 0; k < len(g.level[i]); k += 1 {
+					if g.level[i][k] == 1 {
+						rl.DrawRectangle(i * FACTOR, k * FACTOR, FACTOR, FACTOR, rl.DARKBLUE)
+					} else {
+						if g.level[i][k] == 2 || g.level[i][k] == 4 {
+							available_score += g.level[i][k]
+							point_type: f32 = 3.0 if g.level[i][k] == 2 else 7.0
+							rl.DrawRectangle(i * FACTOR, k * FACTOR, FACTOR, FACTOR, rl.BLACK)
+							rl.DrawCircle(
+								(i * FACTOR) + FACTOR / 2,
+								(k * FACTOR) + FACTOR / 2,
+								point_type,
+								rl.WHITE,
+							)
+						} else {
+							rl.DrawRectangle(i * FACTOR, k * FACTOR, FACTOR, FACTOR, rl.BLACK)
+						}
+					}
+				}
+			}
 
 
-		// draw GHOSTS
-		for i: int = 0; i < len(g.ghosts); i += 1 {
-			ghost := g.ghosts[i]
+			// draw GHOSTS
+			for i: int = 0; i < len(g.ghosts); i += 1 {
+				ghost := g.ghosts[i]
+				rl.DrawRectangle(
+					ghost.position[0] * FACTOR,
+					ghost.position[1] * FACTOR,
+					FACTOR,
+					FACTOR,
+					rl.GREEN,
+				)
+			}
+
+
+			// draw player
 			rl.DrawRectangle(
-				ghost.position[0] * FACTOR,
-				ghost.position[1] * FACTOR,
+				g.player.position[0] * FACTOR,
+				g.player.position[1] * FACTOR,
 				FACTOR,
 				FACTOR,
-				rl.GREEN,
+				rl.YELLOW,
 			)
+
+			// draw score
+			buf: [8]u8
+			result := strconv.itoa(buf[:], int(g.score))
+			score_text: []string = {"SCORE : ", result}
+			score_text_final := strings.clone_to_cstring(strings.concatenate(score_text[:]))
+			rl.DrawText(score_text_final, 12 * FACTOR, 3 * FACTOR, FACTOR, rl.GREEN)
 		}
 
-
-		// draw player
-		rl.DrawRectangle(
-			g.player.position[0] * FACTOR,
-			g.player.position[1] * FACTOR,
-			FACTOR,
-			FACTOR,
-			rl.YELLOW,
-		)
-
-		// draw score
-		buf: [8]u8
-		result := strconv.itoa(buf[:], int(g.score))
-		score_text: []string = {"SCORE : ", result}
-		score_text_final := strings.clone_to_cstring(strings.concatenate(score_text[:]))
-		rl.DrawText(score_text_final, 12 * FACTOR, 3 * FACTOR, FACTOR, rl.GREEN)
-
-		rl.EndDrawing()
-
-        if available_score == 0
-        {
-            g.state = GameState.WON
+        fmt.println(g.state)
+        if g.state == GameState.LOST {
+            rl.ClearBackground(rl.BLUE)
+			rl.DrawText("YOU LOST", 12 * FACTOR, 3 * FACTOR, FACTOR, rl.GREEN)
+            if rl.IsKeyDown(rl.KeyboardKey.R) {
+                g = Game{}
+                g = initGame(g)
+                g.state = GameState.RUNNING
+                available_score = 99
+            }
         }
 
-        fmt.println(g.state)
+        if g.state == GameState.WON {
+            rl.ClearBackground(rl.BLUE)
+			rl.DrawText("YOU WON", 12 * FACTOR, 3 * FACTOR, FACTOR, rl.GREEN)
+        }
+		rl.EndDrawing()
+
+		if available_score == 0 && g.state == GameState.RUNNING{
+			g.state = GameState.WON
+		}
 	}
 
 	rl.CloseWindow()
+
 
 }
