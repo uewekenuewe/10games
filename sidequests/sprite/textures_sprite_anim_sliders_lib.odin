@@ -1,4 +1,5 @@
 package game
+import vb "variable_bars"
 import rl "vendor:raylib"
 
 import "core:fmt"
@@ -11,8 +12,10 @@ MAX_FRAME_SPEED: i32 = 15
 MIN_FRAME_SPEED: i32 = 1
 sliderValue: f32 = 5.0
 
+VARIABLES: []vb.variable_bar
 
 main :: proc() {
+
 
 	screenWidth: i32 = 800
 	screenHeight: i32 = 450
@@ -31,6 +34,21 @@ main :: proc() {
 	framesCounter: i32 = 0
 	framesSpeed: i32 = 8 // Number of spritesheet frames shown by second
 
+	VARIABLES = []vb.variable_bar {
+		vb.variable_bar {
+			name = "farmes_speed",
+			min_value = 0.0,
+			max_value = 15.0,
+			current_value = &sliderValue,
+		},
+		vb.variable_bar {
+			name = "xo",
+			min_value = 0.0,
+			max_value = 15.0,
+			current_value = &sliderValue,
+		},
+	}
+
 
 	for !rl.WindowShouldClose() {
 
@@ -47,16 +65,16 @@ main :: proc() {
 		}
 
 
-        sliderValueI32 : i32 = i32(sliderValue)
+		sliderValueI32: i32 = i32(sliderValue)
 
-        if sliderValueI32 > MAX_FRAME_SPEED {
-            sliderValueI32 = MAX_FRAME_SPEED
-        }
-        if sliderValueI32 < MIN_FRAME_SPEED {
-            sliderValueI32 = MIN_FRAME_SPEED
-        }
+		if sliderValueI32 > MAX_FRAME_SPEED {
+			sliderValueI32 = MAX_FRAME_SPEED
+		}
+		if sliderValueI32 < MIN_FRAME_SPEED {
+			sliderValueI32 = MIN_FRAME_SPEED
+		}
 
-        framesSpeed = sliderValueI32
+		framesSpeed = sliderValueI32
 
 		rl.BeginDrawing()
 
@@ -93,22 +111,9 @@ main :: proc() {
 			rl.GRAY,
 		)
 
-		sliderValuePointer: ^f32 = &sliderValue
-
-        sliderRec : rl.Rectangle = rl.Rectangle{0.0,f32(screenHeight - 20),f32(screenWidth),20.0} 
-		rl.GuiSlider(
-            sliderRec,
-			"SOME SLIDER",
-			"SOME SLIDER",
-			sliderValuePointer,
-			f32(0.0),
-			15.0,
-		)
-
+		vb.draw_variable_bars(VARIABLES, screenHeight, screenWidth)
 
 		rl.EndDrawing()
-
-
 	}
 
 	rl.UnloadTexture(scarfy)
