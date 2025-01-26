@@ -23,16 +23,19 @@ Player :: struct {
 }
 
 Game :: struct {
-	player: Player,
-	score:  i32,
-	state:  GameState,
-	food:   Vector2,
+	player:       Player,
+	score:        i32,
+	state:        GameState,
+	food:         Vector2,
+	every_second: f32,
+	rainbow_mode: bool,
 }
 
 GameState :: enum {
 	RUNNING,
 	WON,
 	LOST,
+	CONFIG,
 }
 
 
@@ -51,12 +54,36 @@ Vector2 :: struct {
 
 update :: proc(g: ^Game) {
 	//g := g
+	g.every_second += rl.GetFrameTime()
+	if g.state == GameState.CONFIG {
+		if rl.IsKeyPressed(rl.KeyboardKey.R) {
+			g.rainbow_mode = !g.rainbow_mode
+		}
+	}
 
 	if g.state == GameState.WON {
 	}
 	if g.state == GameState.LOST {
 	}
 	if g.state == GameState.RUNNING {
+
+		// every second update player position in direciton
+		if g.every_second >= 0.05 { 	//GAMESPEED?
+			g.every_second = 0.0
+			old_position := g.player.position
+			new_position := g.player.position
+			g.player.position.x += g.player.direction.x
+			g.player.position.y += g.player.direction.y
+
+			for i := 0; i < len(g.player.positions); i += 1 {
+				old_position = g.player.positions[i]
+				g.player.positions[i] = new_position
+				if g.player.positions[i] == g.player.position {
+					g.state = GameState.LOST
+				}
+				new_position = old_position
+			}
+		}
 
 		//check if player out of bounce
 		if 0 <= g.player.position.x < GAME_HEIGHT_SCALE {
@@ -83,12 +110,79 @@ update :: proc(g: ^Game) {
 	}
 }
 
-draw :: proc(g: Game) {
+bool_to_string :: proc(b: bool) -> string {
+	if (b) {
+		return string("true")
+	} else {
+		return string("false")
+	}
+}
+
+draw :: proc(g: ^Game) {
 	if g.state == GameState.WON {
 	}
+	if g.state == GameState.CONFIG {
+		rl.ClearBackground(rl.RAYWHITE)
+		rl.DrawText("CONFIG THE GAME", 10, 10, 30, rl.RED)
+		rl.DrawText("Press C to get back", 10, 50, 30, rl.RED)
+		rainbow_mode_text := strings.concatenate(
+			{"Press R to enable/disable Rainbow Mode:", bool_to_string(g.rainbow_mode)},
+		)
+		rl.DrawText(strings.clone_to_cstring(rainbow_mode_text), 10, 70, 30, rl.RED)
+	}
 	if g.state == GameState.LOST {
+		rl.ClearBackground(rl.RAYWHITE)
+		rl.DrawText("YOU LOST", 10, 10, 30, rl.RED)
+		rl.DrawText("Press R to Restart", 10, 50, 30, rl.RED)
 	}
 	if g.state == GameState.RUNNING {
+		// draw player in rainbow mode
+		if g.rainbow_mode {
+			// draw player
+			rl.DrawRectangle(
+				g.player.position.x * FACTOR,
+				g.player.position.y * FACTOR,
+				FACTOR,
+				FACTOR,
+				rl.RED,
+			)
+
+			colors := []rl.Color {
+				rl.ORANGE,
+				rl.YELLOW,
+				rl.GREEN,
+				rl.BLUE,
+				rl.Color{75, 0, 130, 255}, // INDIGO
+				rl.VIOLET,
+				rl.RED,
+			}
+			color_index := 0
+			for pos in g.player.positions {
+				cc := colors[color_index]
+				rl.DrawRectangle(pos.x * FACTOR, pos.y * FACTOR, FACTOR, FACTOR, cc)
+				color_index = (color_index + 1) % len(colors)
+			}
+
+
+		} else {
+			// draw player
+			rl.DrawRectangle(
+				g.player.position.x * FACTOR,
+				g.player.position.y * FACTOR,
+				FACTOR,
+				FACTOR,
+				rl.YELLOW,
+			)
+
+			for pos in g.player.positions {
+				rl.DrawRectangle(pos.x * FACTOR, pos.y * FACTOR, FACTOR, FACTOR, rl.YELLOW)
+			}
+
+			// normal mode 
+		}
+		// draw food
+		rl.DrawRectangle(g.food.x * FACTOR, g.food.y * FACTOR, FACTOR, FACTOR, rl.GREEN)
+
 	}
 }
 
@@ -96,6 +190,8 @@ initGame :: proc() -> Game {
 	game := Game{}
 	game.score = 0
 	game.state = GameState.RUNNING
+
+	game.every_second = 0.0
 
 	// create player
 	player := Player{}
@@ -128,7 +224,6 @@ main :: proc() {
 
 	rl.SetTargetFPS(FPS)
 
-	every_second: f32 = 0.0
 
 	frames: i32 = 0
 
@@ -138,7 +233,6 @@ main :: proc() {
 		rl.ClearBackground(rl.BLACK)
 		frames += 1
 
-		every_second += rl.GetFrameTime()
 
 		// PLAYER INPUTS
 		// player movement
@@ -162,58 +256,24 @@ main :: proc() {
 				g.player.direction = {0, 1}
 			}
 		}
+		if rl.IsKeyPressed(rl.KeyboardKey.C) && g.state == GameState.CONFIG {
+			g.state = GameState.RUNNING
+		} else {
+			if rl.IsKeyPressed(rl.KeyboardKey.C) && g.state == GameState.RUNNING {
+				g.state = GameState.CONFIG
+			}
+		}
+		if rl.IsKeyDown(rl.KeyboardKey.R) && g.state == GameState.LOST {
+			g = initGame()
+		}
+
 
 		update(&g)
 
 		rl.BeginDrawing()
 
-        draw(&g)
+		draw(&g)
 
-		if g.state == GameState.RUNNING {
-
-			// every second update player position in direciton
-			if every_second >= 0.05 { 	//GAMESPEED?
-				every_second = 0.0
-				old_position := g.player.position
-				new_position := g.player.position
-				g.player.position.x += g.player.direction.x
-				g.player.position.y += g.player.direction.y
-
-				for i := 0; i < len(g.player.positions); i += 1 {
-					old_position = g.player.positions[i]
-					g.player.positions[i] = new_position
-					if g.player.positions[i] == g.player.position {
-						g.state = GameState.LOST
-					}
-					new_position = old_position
-				}
-			}
-
-			// draw player
-			rl.DrawRectangle(
-				g.player.position.x * FACTOR,
-				g.player.position.y * FACTOR,
-				FACTOR,
-				FACTOR,
-				rl.YELLOW,
-			)
-
-			for pos in g.player.positions {
-				rl.DrawRectangle(pos.x * FACTOR, pos.y * FACTOR, FACTOR, FACTOR, rl.YELLOW)
-			}
-
-			// draw food
-			rl.DrawRectangle(g.food.x * FACTOR, g.food.y * FACTOR, FACTOR, FACTOR, rl.GREEN)
-		}
-
-		if g.state == GameState.LOST {
-			rl.ClearBackground(rl.RAYWHITE)
-			rl.DrawText("YOU LOST", 10, 10, 30, rl.RED)
-			rl.DrawText("Press R to Restart", 10, 50, 30, rl.RED)
-			if rl.IsKeyDown(rl.KeyboardKey.R) {
-				g = initGame()
-			}
-		}
 		rl.EndDrawing()
 	}
 	rl.CloseWindow()
