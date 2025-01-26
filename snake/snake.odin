@@ -10,8 +10,9 @@ import "core:strings"
 ODIN_DEBUG := true
 GAME_HEIGHT: i32 = 800
 GAME_WIDTH: i32 = 600
-GAME_HEIGHT_SCALE: i32 = 0
-GAME_WIDTH_SCALE: i32 = 0
+FACTOR: i32 = 30
+GAME_HEIGHT_SCALE: i32 = i32(GAME_HEIGHT / FACTOR)
+GAME_WIDTH_SCALE: i32 = i32(GAME_WIDTH / FACTOR)
 FPS: i32 = 30
 
 Player :: struct {
@@ -25,6 +26,7 @@ Game :: struct {
 	player: Player,
 	score:  i32,
 	state:  GameState,
+	food:   Vector2,
 }
 
 GameState :: enum {
@@ -33,7 +35,6 @@ GameState :: enum {
 	LOST,
 }
 
-FACTOR: i32 = 30
 
 slider_variable :: struct {
 	name:  string,
@@ -48,37 +49,88 @@ Vector2 :: struct {
 	y: i32,
 }
 
+update :: proc(g: ^Game) {
+	//g := g
+
+	if g.state == GameState.WON {
+	}
+	if g.state == GameState.LOST {
+	}
+	if g.state == GameState.RUNNING {
+
+		//check if player out of bounce
+		if 0 <= g.player.position.x < GAME_HEIGHT_SCALE {
+			if g.player.position.x < 0 {
+				g.player.position.x = GAME_HEIGHT_SCALE
+			} else if g.player.position.x > GAME_HEIGHT_SCALE {
+				g.player.position.x = 0
+			}
+		}
+		if 0 <= g.player.position.y < GAME_WIDTH_SCALE {
+			if g.player.position.y < 0 {
+				g.player.position.y = GAME_WIDTH_SCALE
+			} else if g.player.position.y > GAME_WIDTH_SCALE {
+				g.player.position.y = 0
+			}
+		}
+
+		if g.player.position == g.food {
+			g.food.x = rl.GetRandomValue(0, GAME_WIDTH_SCALE - 5)
+			g.food.y = rl.GetRandomValue(0, GAME_HEIGHT_SCALE - 5)
+			append(&g.player.positions, g.player.position)
+			g.player.length += 1
+		}
+	}
+}
+
+draw :: proc(g: Game) {
+	if g.state == GameState.WON {
+	}
+	if g.state == GameState.LOST {
+	}
+	if g.state == GameState.RUNNING {
+	}
+}
+
+initGame :: proc() -> Game {
+	game := Game{}
+	game.score = 0
+	game.state = GameState.RUNNING
+
+	// create player
+	player := Player{}
+	player.position = Vector2{15, 15}
+	player.length = 5
+	player.direction = {1, 0}
+	append(&player.positions, Vector2{14, 15})
+	append(&player.positions, Vector2{13, 15})
+	append(&player.positions, Vector2{12, 15})
+	append(&player.positions, Vector2{11, 15})
+
+	game.player = player
+
+	// add food to game
+	food: Vector2
+	food.x = rl.GetRandomValue(0, GAME_WIDTH_SCALE)
+	food.y = rl.GetRandomValue(0, GAME_HEIGHT_SCALE)
+	game.food = food
+
+	return game
+}
+
 main :: proc() {
 
 	rl.InitWindow(GAME_HEIGHT, GAME_WIDTH, "snake")
 
-	GAME_HEIGHT_SCALE: i32 = i32(GAME_HEIGHT / FACTOR)
-	GAME_WIDTH_SCALE: i32 = i32(GAME_WIDTH / FACTOR)
 
-	g := Game{}
+	g := initGame()
 
-	g.score = 0
-
-	g.state = GameState.RUNNING
-
-	g.player = Player{}
-	g.player.position = Vector2{15, 15}
-	g.player.length = 5
-	g.player.direction = {1, 0}
-	append(&g.player.positions, Vector2{14, 15})
-	append(&g.player.positions, Vector2{13, 15})
-	append(&g.player.positions, Vector2{12, 15})
-	append(&g.player.positions, Vector2{11, 15})
 
 	rl.SetTargetFPS(FPS)
 
 	every_second: f32 = 0.0
 
 	frames: i32 = 0
-
-	food: Vector2
-	food.x = rl.GetRandomValue(0, GAME_WIDTH_SCALE)
-	food.y = rl.GetRandomValue(0, GAME_HEIGHT_SCALE)
 
 
 	for !rl.WindowShouldClose() {
@@ -88,8 +140,7 @@ main :: proc() {
 
 		every_second += rl.GetFrameTime()
 
-
-		player_old_pos := g.player.position
+		// PLAYER INPUTS
 		// player movement
 		if rl.IsKeyDown(rl.KeyboardKey.A) || rl.IsKeyDown(rl.KeyboardKey.LEFT) {
 			if g.player.direction != {1, 0} {
@@ -112,30 +163,11 @@ main :: proc() {
 			}
 		}
 
-		//check if player out of bounce
-		if 0 <= g.player.position.x < GAME_HEIGHT_SCALE {
-			if g.player.position.x < 0 {
-				g.player.position.x = GAME_HEIGHT_SCALE
-			} else if g.player.position.x > GAME_HEIGHT_SCALE {
-				g.player.position.x = 0
-			}
-		}
-		if 0 <= g.player.position.y < GAME_WIDTH_SCALE {
-			if g.player.position.y < 0 {
-				g.player.position.y = GAME_WIDTH_SCALE
-			} else if g.player.position.y > GAME_WIDTH_SCALE {
-				g.player.position.y = 0
-			}
-		}
-
-		if g.player.position == food {
-			food.x = rl.GetRandomValue(0, GAME_WIDTH_SCALE-5)
-			food.y = rl.GetRandomValue(0, GAME_HEIGHT_SCALE-5)
-            append(&g.player.positions, g.player.position)
-            g.player.length += 1
-		}
+		update(&g)
 
 		rl.BeginDrawing()
+
+        draw(&g)
 
 		if g.state == GameState.RUNNING {
 
@@ -171,12 +203,16 @@ main :: proc() {
 			}
 
 			// draw food
-			rl.DrawRectangle(food.x * FACTOR, food.y * FACTOR, FACTOR, FACTOR, rl.GREEN)
+			rl.DrawRectangle(g.food.x * FACTOR, g.food.y * FACTOR, FACTOR, FACTOR, rl.GREEN)
 		}
 
 		if g.state == GameState.LOST {
 			rl.ClearBackground(rl.RAYWHITE)
 			rl.DrawText("YOU LOST", 10, 10, 30, rl.RED)
+			rl.DrawText("Press R to Restart", 10, 50, 30, rl.RED)
+			if rl.IsKeyDown(rl.KeyboardKey.R) {
+				g = initGame()
+			}
 		}
 		rl.EndDrawing()
 	}

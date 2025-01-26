@@ -6,6 +6,9 @@ build 10 games to get collect xp within game dev and technologies
 - [x] render a sprite
 - [x] create a lib that creates slider for variables within in code 
 - [x] build script / start for all games
+- [ ] mini engine what we always need : game states update and draw for every game state // transition from one game state to another // reini game --> create skeleton?
+- [ ]
+- [ ]
 - [ ]
 
 ## BUILD
