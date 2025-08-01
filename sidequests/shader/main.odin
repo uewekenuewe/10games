@@ -44,8 +44,24 @@ main :: proc() {
 	dir_path := "C:\\projekte\\10games\\sidequests\\shader\\shaders"
 	SHADERS := load_shaders(dir_path)
 
+
+	// Get uniform location
+	time_loc := rl.GetShaderLocation(SHADERS[CURRENT_INDEX], "time")
+
+
 	for !rl.WindowShouldClose() {
 
+		//       SetShaderValueV         :: proc(shader: Shader, #any_int locIndex: c.int, value: rawptr, uniformType: ShaderUniformDataType, count: c.int) --- // Set shader uniform value vector 
+		//rl.SetShaderValueV(SHADERS[CURRENT_INDEX], 0, &time, rl.ShaderUniformDataType.FLOAT)
+		time := f32(rl.GetTime())
+		time_array := [1]f32{time}
+		rl.SetShaderValueV(
+			SHADERS[CURRENT_INDEX],
+			time_loc,
+			&time_array[0],
+			rl.ShaderUniformDataType.FLOAT,
+			1,
+		)
 		rl.BeginDrawing()
 		{
 			rl.BeginShaderMode(SHADERS[CURRENT_INDEX])
@@ -58,6 +74,7 @@ main :: proc() {
 		if (rl.IsKeyPressed(rl.KeyboardKey.N)) {
 			CURRENT_INDEX += 1
 			CURRENT_INDEX %= len(SHADERS)
+			time_loc = rl.GetShaderLocation(SHADERS[CURRENT_INDEX], "time")
 		}
 
 
