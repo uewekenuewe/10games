@@ -45,6 +45,7 @@ main :: proc() {
 	rl.SetTargetFPS(60)
 
 	dir_path := "C:\\projekte\\10games\\sidequests\\shader\\shaders"
+	dir_path = "./shaders/"
 
 	SHADERS, SHADER_NAMES := load_shaders(dir_path)
 
