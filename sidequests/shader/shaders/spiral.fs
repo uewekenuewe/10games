@@ -1,13 +1,14 @@
 #version 330
 uniform float time;
+uniform vec2 iResolution;
 out vec4 fragColor;
 
 void main() {
     // Normalize UV coordinates to [-1, 1] with center at (0, 0)
-    vec2 uv = (gl_FragCoord.xy / vec2(800.0, 450.0)) * 2.0 - 1.0;
+    vec2 uv = (gl_FragCoord.xy / iResolution) * 2.0 - 1.0;
     
     // Adjust for aspect ratio
-    uv.x *= 800.0 / 450.0;
+    uv.x *= iResolution.x/ iResolution.y;
     
     // Polar coordinates
     float r = length(uv); // Radius

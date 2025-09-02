@@ -3,12 +3,13 @@
 in vec4 fragColor;
 in vec2 fragTexCoord;
 
+uniform vec2 iResolution;
 
 out vec4 FragColor;
 
 void main() {
 
-    vec2 uv = vec2(gl_FragCoord.x/800,gl_FragCoord.y/600);
+    vec2 uv = vec2(gl_FragCoord.x/iResolution.x,gl_FragCoord.y/iResolution.y);
     uv.x = uv.x * 2 - 1.0;
     uv.y = uv.y * 2 - 1.0;
     float d = length(uv);

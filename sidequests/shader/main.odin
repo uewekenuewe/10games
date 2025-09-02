@@ -8,8 +8,11 @@ import rl "vendor:raylib"
 
 SHADERS: [dynamic]rl.Shader
 SHADER_NAMES: [dynamic]string
-
 CURRENT_INDEX := 0
+WINDOW_HEIGHT :: 600.0
+WINDOW_WIDTH :: 800.0
+
+iResolution: rl.Vector2
 
 load_shaders :: proc(basedir: string) -> ([dynamic]rl.Shader, [dynamic]string) {
 	result_shader := [dynamic]rl.Shader{}
@@ -33,7 +36,11 @@ load_shaders :: proc(basedir: string) -> ([dynamic]rl.Shader, [dynamic]string) {
 	for entry in entries {
 		fmt.println(entry.name)
 		append(&result_names, entry.name)
-		append(&result_shader, rl.LoadShader("", strings.unsafe_string_to_cstring(entry.fullpath)))
+
+		shader_tmp := rl.LoadShader("", strings.unsafe_string_to_cstring(entry.fullpath))
+		//SetShaderValueV         :: proc(shader: Shader, #any_int locIndex: c.int, value: rawptr, uniformType: ShaderUniformDataType, count: c.int) --- // Set shader uniform value vector
+		// Get the location of the uniform 'values' in the shader
+        append(&result_shader, shader_tmp)
 	}
 
 
@@ -41,7 +48,7 @@ load_shaders :: proc(basedir: string) -> ([dynamic]rl.Shader, [dynamic]string) {
 }
 
 main :: proc() {
-	rl.InitWindow(800, 600, "TEST_LOAD_MESH")
+	rl.InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "shader playing ground")
 	rl.SetTargetFPS(60)
 
 	dir_path := "C:\\projekte\\10games\\sidequests\\shader\\shaders"
@@ -54,9 +61,15 @@ main :: proc() {
 	// Get uniform location
 	time_loc := rl.GetShaderLocation(SHADERS[CURRENT_INDEX], "time")
 
+	iResolution = rl.Vector2{WINDOW_WIDTH, WINDOW_HEIGHT}
 
 	for !rl.WindowShouldClose() {
 
+        // resolution
+    iResolution_location := rl.GetShaderLocation(SHADERS[CURRENT_INDEX],  "iResolution")
+		rl.SetShaderValueV(SHADERS[CURRENT_INDEX], iResolution_location, &iResolution, rl.ShaderUniformDataType.VEC2, 1)
+
+        // time 
 		time := f32(rl.GetTime())
 		time_array := [1]f32{time}
 		rl.SetShaderValueV(
@@ -69,7 +82,13 @@ main :: proc() {
 		rl.BeginDrawing()
 		{
 			rl.BeginShaderMode(SHADERS[CURRENT_INDEX])
-			rl.DrawRectangleV(rl.Vector2{0.0, 0.0}, rl.Vector2{1000.0, 600.0}, rl.RED)
+			rl.DrawRectangleV(
+				rl.Vector2{0.0, 0.0},
+                iResolution,
+                //rl.Vector2{100.0, 100.0},
+				//rl.Vector2{800,600},
+				rl.RED,
+			)
 			rl.EndShaderMode()
 		}
 

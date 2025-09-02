@@ -6,6 +6,7 @@ in vec2 fragTexCoord;
 
 out vec4 FragColor;
 
+uniform vec2 iResolution;
 
 // Calculate Euclidean distance between two 2D points
 float d(vec2 p0, vec2 p1) {
@@ -15,9 +16,7 @@ float d(vec2 p0, vec2 p1) {
 
 void main() {
 
-
-     vec2 iResolution = vec2(800.0,600.0);
-        // Convert pixel coordinates to a normalized space centered around the screen
+    // Convert pixel coordinates to a normalized space centered around the screen
     vec2 uv = (gl_FragCoord.xy - iResolution.xy * 0.5) / min(iResolution.x, iResolution.y) * 10.0;
 
     // Calculate distance from screen center

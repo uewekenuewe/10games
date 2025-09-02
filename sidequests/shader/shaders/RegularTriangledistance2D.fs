@@ -3,6 +3,7 @@
 in vec4 fragColor;
 in vec2 fragTexCoord;
 
+uniform vec2 iResolution;
 
 out vec4 FragColor;
 
@@ -36,7 +37,6 @@ float fEquilateralTriangle(  in vec2 p, in float r )
 }
 
 void main() {
-    vec2 iResolution = vec2(800.0,600.0);
 
 	vec2 p = (2.0*gl_FragCoord.xy-iResolution.xy)/iResolution.y;
     //vec2 m = (2.0*iMouse.xy-iResolution.xy)/iResolution.y;
