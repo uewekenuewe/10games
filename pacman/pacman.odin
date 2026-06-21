@@ -1,3 +1,5 @@
+#+feature dynamic-literals
+
 package game
 import rl "vendor:raylib"
 
@@ -1092,6 +1094,7 @@ initGame :: proc(game: Game) -> Game {
 
 FACTOR: i32 = 30
 PLAYER_POWER_DURATION_SEC: i32 = 10
+SLIDER_VARIBLES: map[string]slider_variable
 
 GHOSTSINIT: [4]Ghost = [4]Ghost {
 	Ghost{direction_ind = 0, direction = {-1, 0}, position = {14, 16}},
@@ -1106,7 +1109,6 @@ slider_variable :: struct {
 	max:   f32,
 	value: f32,
 }
-SLIDER_VARIBLES: map[string]slider_variable
 
 
 main :: proc() {

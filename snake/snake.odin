@@ -86,14 +86,14 @@ update :: proc(g: ^Game) {
 		}
 
 		//check if player out of bounce
-		if 0 <= g.player.position.x < GAME_HEIGHT_SCALE {
+		if 0 <= g.player.position.x && g.player.position.x < GAME_HEIGHT_SCALE {
 			if g.player.position.x < 0 {
 				g.player.position.x = GAME_HEIGHT_SCALE
 			} else if g.player.position.x > GAME_HEIGHT_SCALE {
 				g.player.position.x = 0
 			}
 		}
-		if 0 <= g.player.position.y < GAME_WIDTH_SCALE {
+		if 0 <= g.player.position.y && g.player.position.y < GAME_WIDTH_SCALE {
 			if g.player.position.y < 0 {
 				g.player.position.y = GAME_WIDTH_SCALE
 			} else if g.player.position.y > GAME_WIDTH_SCALE {
