@@ -1268,7 +1268,7 @@ main :: proc() {
 
 			// draw score
 			buf: [8]u8
-			result := strconv.itoa(buf[:], int(g.score))
+			result := strconv.write_int(buf[:], i64(g.score),10)
 			score_text: []string = {"SCORE : ", result}
 			score_text_final := strings.clone_to_cstring(strings.concatenate(score_text[:]))
 			rl.DrawText(score_text_final, 12 * FACTOR, 3 * FACTOR, FACTOR, rl.GREEN)

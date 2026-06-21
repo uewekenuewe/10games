@@ -7,7 +7,10 @@ build 10 games to get collect xp within game dev and technologies
 - [x] create a lib that creates slider for variables within in code 
 - [x] build script / start for all games
 - [ ] mini engine what we always need : game states update and draw for every game state // transition from one game state to another // reini game --> create skeleton?
-- [ ]
+- [ ] Replay engine recode game states and replay 
+- [ ] snake explain controls
+- [ ] snake add boundaries that you die
+- [ ] snake rainbow mode on the fly?
 - [ ]
 - [ ]
 
