@@ -1,11 +1,7 @@
 package game
 import rl "vendor:raylib"
-
 import "core:fmt"
-import "core:math/rand"
-import "core:strconv"
 import "core:strings"
-
 
 ODIN_DEBUG := true
 GAME_HEIGHT: i32 = 800
@@ -29,6 +25,7 @@ Game :: struct {
 	food:         Vector2,
 	every_second: f32,
 	rainbow_mode: bool,
+    barrier_mode : bool,
 }
 
 GameState :: enum {
@@ -53,11 +50,15 @@ Vector2 :: struct {
 }
 
 update :: proc(g: ^Game) {
-	//g := g
 	g.every_second += rl.GetFrameTime()
+
+    // config menu
 	if g.state == GameState.CONFIG {
 		if rl.IsKeyPressed(rl.KeyboardKey.R) {
 			g.rainbow_mode = !g.rainbow_mode
+		}
+		if rl.IsKeyPressed(rl.KeyboardKey.B) {
+			g.barrier_mode = !g.barrier_mode
 		}
 	}
 
@@ -66,7 +67,6 @@ update :: proc(g: ^Game) {
 	if g.state == GameState.LOST {
 	}
 	if g.state == GameState.RUNNING {
-
 		// every second update player position in direciton
 		if g.every_second >= 0.05 { 	//GAMESPEED?
 			g.every_second = 0.0
@@ -86,20 +86,34 @@ update :: proc(g: ^Game) {
 		}
 
 		//check if player out of bounce
-		if 0 <= g.player.position.x && g.player.position.x < GAME_HEIGHT_SCALE {
-			if g.player.position.x < 0 {
-				g.player.position.x = GAME_HEIGHT_SCALE
-			} else if g.player.position.x > GAME_HEIGHT_SCALE {
-				g.player.position.x = 0
-			}
+		if g.player.position.x > GAME_HEIGHT_SCALE {
+            if g.barrier_mode{
+                g.state = .LOST
+            }else{
+                g.player.position.x = 0
+            }
 		}
-		if 0 <= g.player.position.y && g.player.position.y < GAME_WIDTH_SCALE {
-			if g.player.position.y < 0 {
-				g.player.position.y = GAME_WIDTH_SCALE
-			} else if g.player.position.y > GAME_WIDTH_SCALE {
-				g.player.position.y = 0
-			}
+		if g.player.position.x < 0 {
+            if g.barrier_mode{
+                g.state = .LOST
+            }else{
+                g.player.position.x = GAME_HEIGHT_SCALE
+            }
 		}
+		if g.player.position.y > GAME_WIDTH_SCALE {
+            if g.barrier_mode{
+                g.state = .LOST
+            }else{
+                g.player.position.y = 0
+            }
+		}
+		if g.player.position.y < 0 {
+            if g.barrier_mode{
+                g.state = .LOST
+            }else{
+                g.player.position.y = GAME_WIDTH_SCALE
+            }
+        }
 
 		if g.player.position == g.food {
 			g.food.x = rl.GetRandomValue(0, GAME_WIDTH_SCALE - 5)
@@ -119,23 +133,45 @@ bool_to_string :: proc(b: bool) -> string {
 }
 
 draw :: proc(g: ^Game) {
+
 	if g.state == GameState.WON {
 	}
+
 	if g.state == GameState.CONFIG {
 		rl.ClearBackground(rl.RAYWHITE)
 		rl.DrawText("CONFIG THE GAME", 10, 10, 30, rl.RED)
-		rl.DrawText("Press C to get back", 10, 50, 30, rl.RED)
+		rl.DrawText("Press C to get back", 10, 70, 30, rl.RED)
 		rainbow_mode_text := strings.concatenate(
 			{"Press R to enable/disable Rainbow Mode:", bool_to_string(g.rainbow_mode)},
 		)
-		rl.DrawText(strings.clone_to_cstring(rainbow_mode_text), 10, 70, 30, rl.RED)
+		rl.DrawText(strings.clone_to_cstring(rainbow_mode_text), 10, 110, 30, rl.RED)
+		barrier_mode_text := strings.concatenate(
+			{"Press B to enable/disable Barrier Mode:", bool_to_string(g.barrier_mode)},
+		)
+		rl.DrawText(strings.clone_to_cstring(barrier_mode_text), 10, 150, 30, rl.RED)
 	}
+
 	if g.state == GameState.LOST {
 		rl.ClearBackground(rl.RAYWHITE)
 		rl.DrawText("YOU LOST", 10, 10, 30, rl.RED)
 		rl.DrawText("Press R to Restart", 10, 50, 30, rl.RED)
 	}
+
 	if g.state == GameState.RUNNING {
+		// draw barrier mode
+		if g.barrier_mode {
+			rl.DrawRectangleLinesEx(
+                rl.Rectangle{
+                    0,
+                    0,
+                    f32(GAME_HEIGHT),
+                    f32(GAME_WIDTH),
+                } ,
+                5.0,
+				rl.RED,
+			)
+        }
+
 		// draw player in rainbow mode
 		if g.rainbow_mode {
 			// draw player
@@ -193,6 +229,9 @@ initGame :: proc() -> Game {
 
 	game.every_second = 0.0
 
+    game.rainbow_mode = false
+    game.barrier_mode = true
+
 	// create player
 	player := Player{}
 	player.position = Vector2{15, 15}
@@ -227,35 +266,43 @@ main :: proc() {
 
 	frames: i32 = 0
 
-
 	for !rl.WindowShouldClose() {
 
 		rl.ClearBackground(rl.BLACK)
 		frames += 1
 
-
 		// PLAYER INPUTS
 		// player movement
-		if rl.IsKeyDown(rl.KeyboardKey.A) || rl.IsKeyDown(rl.KeyboardKey.LEFT) {
-			if g.player.direction != {1, 0} {
-				g.player.direction = {-1, 0}
-			}
-		}
-		if rl.IsKeyDown(rl.KeyboardKey.D) || rl.IsKeyDown(rl.KeyboardKey.RIGHT) {
-			if g.player.direction != {-1, 0} {
-				g.player.direction = {1, 0}
-			}
-		}
-		if rl.IsKeyDown(rl.KeyboardKey.W) || rl.IsKeyDown(rl.KeyboardKey.UP) {
-			if g.player.direction != {0, 1} {
-				g.player.direction = {0, -1}
-			}
-		}
-		if rl.IsKeyDown(rl.KeyboardKey.S) || rl.IsKeyDown(rl.KeyboardKey.DOWN) {
-			if g.player.direction != {0, -1} {
-				g.player.direction = {0, 1}
-			}
-		}
+        // \\TODO some organzing
+        if g.state == GameState.RUNNING{
+            if rl.IsKeyDown(rl.KeyboardKey.A) || rl.IsKeyDown(rl.KeyboardKey.LEFT) {
+                if g.player.direction != {1, 0} {
+                    g.player.direction = {-1, 0}
+                }
+            }
+            if rl.IsKeyDown(rl.KeyboardKey.D) || rl.IsKeyDown(rl.KeyboardKey.RIGHT) {
+                if g.player.direction != {-1, 0} {
+                    g.player.direction = {1, 0}
+                }
+            }
+            if rl.IsKeyDown(rl.KeyboardKey.W) || rl.IsKeyDown(rl.KeyboardKey.UP) {
+                if g.player.direction != {0, 1} {
+                    g.player.direction = {0, -1}
+                }
+            }
+            if rl.IsKeyDown(rl.KeyboardKey.S) || rl.IsKeyDown(rl.KeyboardKey.DOWN) {
+                if g.player.direction != {0, -1} {
+                    g.player.direction = {0, 1}
+                }
+            }
+            if rl.IsKeyPressed(rl.KeyboardKey.R) {
+                g.rainbow_mode = !g.rainbow_mode
+            }
+
+            if rl.IsKeyPressed(rl.KeyboardKey.B) {
+                g.barrier_mode = !g.barrier_mode
+            }
+        }
 		if rl.IsKeyPressed(rl.KeyboardKey.C) && g.state == GameState.CONFIG {
 			g.state = GameState.RUNNING
 		} else {
@@ -263,10 +310,14 @@ main :: proc() {
 				g.state = GameState.CONFIG
 			}
 		}
+
 		if rl.IsKeyDown(rl.KeyboardKey.R) && g.state == GameState.LOST {
 			g = initGame()
 		}
 
+        // \\TODO can we implement this?
+        // do we want an array with
+        // state - Keys - function 
 
 		update(&g)
 
